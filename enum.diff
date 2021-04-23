@@ -1,0 +1,111 @@
+diff --git a/emulator/opengl/host/tools/emugen/TypeFactory.cpp b/emulator/opengl/host/tools/emugen/TypeFactory.cpp
+index bbc1488d7..fe893fdbf 100644
+--- a/emulator/opengl/host/tools/emugen/TypeFactory.cpp
++++ b/emulator/opengl/host/tools/emugen/TypeFactory.cpp
+@@ -50,18 +50,18 @@ static VarConverter * getVarConverter(int size)
+     return v;
+ }
+ 
+-#define ADD_TYPE(name, size, printformat,ispointer)                                           \
+-    g_varMap.insert(std::pair<std::string, VarType>(name, VarType(g_typeId++, name, &g_var##size , printformat , ispointer)));
++#define ADD_TYPE(name, size, printformat,ispointer, isEnum)                                           \
++    g_varMap.insert(std::pair<std::string, VarType>(name, VarType(g_typeId++, name, &g_var##size , printformat , ispointer, isEnum)));
+ 
+ void TypeFactory::initBaseTypes()
+ {
+     g_initialized = true;
+-    ADD_TYPE("UNKNOWN", 0, "0x%x", false);
+-    ADD_TYPE("void", 0, "0x%x", false);
+-    ADD_TYPE("char", 8, "%c", false);
+-    ADD_TYPE("int", 32, "%d", false);
+-    ADD_TYPE("float", 32, "%d", false);
+-    ADD_TYPE("short", 16, "%d", false);
++    ADD_TYPE("UNKNOWN", 0, "0x%x", false, false);
++    ADD_TYPE("void", 0, "0x%x", false, false);
++    ADD_TYPE("char", 8, "%c", false, false);
++    ADD_TYPE("int", 32, "%d", false, false);
++    ADD_TYPE("float", 32, "%d", false, false);
++    ADD_TYPE("short", 16, "%d", false, false);
+ }
+ 
+ int TypeFactory::initFromFile(const std::string &filename)
+@@ -124,6 +124,11 @@ int TypeFactory::initFromFile(const std::string &filename)
+           return -2;
+         }
+ 
++        bool isEnum = false;
++        if (!strcmp ((const char*)name.c_str(), "GLenum") ||
++                !strcmp ((const char*)name.c_str(), "EGLenum"))
++            isEnum = true;
++
+         VarConverter *v = getVarConverter(atoi(size.c_str()));
+         if (v == NULL) {
+             fprintf(stderr, "Error: %d : unknown var width: %d\n", lc, atoi(size.c_str()));
+@@ -135,9 +140,9 @@ int TypeFactory::initFromFile(const std::string &filename)
+                     "Warining: %d : type %s is already known, definition in line %d is taken\n",
+                     lc, name.c_str(), lc);
+         }
+-        g_varMap.insert(std::pair<std::string, VarType>(name, VarType(g_typeId++, name, v ,printString,isPointer)));
++        g_varMap.insert(std::pair<std::string, VarType>(name, VarType(g_typeId++, name, v ,printString, isPointer, isEnum)));
+         std::string constName = "const " + name;
+-        g_varMap.insert(std::pair<std::string, VarType>(constName, VarType(g_typeId++, constName, v ,printString,isPointer))); //add a const type
++        g_varMap.insert(std::pair<std::string, VarType>(constName, VarType(g_typeId++, constName, v ,printString, isPointer, isEnum))); //add a const type
+     }
+     g_initialized = true;
+     return 0;
+diff --git a/emulator/opengl/host/tools/emugen/Var.h b/emulator/opengl/host/tools/emugen/Var.h
+index 322c66a92..ba840995e 100644
+--- a/emulator/opengl/host/tools/emugen/Var.h
++++ b/emulator/opengl/host/tools/emugen/Var.h
+@@ -75,6 +75,7 @@ public:
+     const std::string & name() const { return m_name; }
+     const VarType * type() const { return m_type; }
+     bool isPointer() const { return m_type->isPointer(); }
++    bool isEnum() const { return m_type->isEnum(); }
+     bool isVoid() const { return ((m_type->bytes() == 0) && (!m_type->isPointer())); }
+     const std::string & lenExpression() const { return m_lenExpression; }
+     const std::string & packExpression() const { return(m_packExpression); }
+@@ -97,6 +98,7 @@ private:
+     std::string m_name;
+     const VarType * m_type;
+     bool m_pointer; // is this variable a pointer;
++    bool m_enum;    // is this variable an enum;
+     std::string m_lenExpression; // an expression to calcualte a pointer data size
+     PointerDir m_pointerDir;
+     bool m_nullAllowed;
+diff --git a/emulator/opengl/host/tools/emugen/VarType.h b/emulator/opengl/host/tools/emugen/VarType.h
+index 60562b25c..d797af1b9 100644
+--- a/emulator/opengl/host/tools/emugen/VarType.h
++++ b/emulator/opengl/host/tools/emugen/VarType.h
+@@ -55,12 +55,12 @@ public:
+ class VarType {
+ public:
+     VarType() :
+-        m_id(0), m_name("default_constructed"), m_converter(NULL), m_printFomrat("0x%x"), m_isPointer(false)
++        m_id(0), m_name("default_constructed"), m_converter(NULL), m_printFomrat("0x%x"), m_isPointer(false), m_isEnum(false)
+     {
+     }
+ 
+-    VarType(size_t id, const std::string & name, const VarConverter * converter, const std::string & printFormat , const bool isPointer) :
+-        m_id(id), m_name(name), m_converter(const_cast<VarConverter *>(converter)), m_printFomrat(printFormat), m_isPointer(isPointer)
++    VarType(size_t id, const std::string & name, const VarConverter * converter, const std::string & printFormat , const bool isPointer, const bool isEnum) :
++        m_id(id), m_name(name), m_converter(const_cast<VarConverter *>(converter)), m_printFomrat(printFormat), m_isPointer(isPointer), m_isEnum(isEnum)
+     {
+     }
+ 
+@@ -71,6 +71,7 @@ public:
+     const std::string & printFormat() const { return m_printFomrat; }
+     size_t bytes() const { return m_converter->bytes(); }
+     bool isPointer() const { return m_isPointer; }
++    bool isEnum() const { return m_isEnum; }
+     size_t id() const { return m_id; }
+ private:
+     size_t m_id;
+@@ -78,6 +79,7 @@ private:
+     VarConverter * m_converter;
+     std::string m_printFomrat;
+     bool m_isPointer;
++    bool m_isEnum;
+ };
+ 
+ #endif

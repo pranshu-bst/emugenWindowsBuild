@@ -134,7 +134,7 @@ static VarConverter* getVarConverter(int size)
 }
 
 #define ADD_TYPE(name, size, printformat,ispointer, isEnum)                                           \
-    g_varMap.insert(std::pair<std::string, VarType>(name, VarType(g_typeId++, name, &g_var##size , printformat , ispointer, isEnum)));
+	g_varMap.insert(std::pair<std::string, VarType>(name, VarType(g_typeId++, name, &g_var##size , printformat , ispointer, isEnum)));
 
 void TypeFactory::initBaseTypes()
 {

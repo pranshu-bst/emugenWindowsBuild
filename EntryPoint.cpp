@@ -1,4 +1,4 @@
-/*
+﻿/*
 * Copyright (C) 2011 The Android Open Source Project
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
 
 EntryPoint::EntryPoint()
 {
-    reset();
+	reset();
 }
 
 EntryPoint::~EntryPoint()
@@ -32,351 +32,375 @@ EntryPoint::~EntryPoint()
 
 void EntryPoint::reset()
 {
-    m_unsupported = false;
-    m_customDecoder = false;
-    m_notApi = false;
-    m_vars.empty();
+	m_unsupported = false;
+	m_customDecoder = false;
+	m_notApi = false;
+	m_vars.empty();
 }
 
-bool parseTypeField(const std::string & f, std::string *vartype, std::string *varname)
+bool parseTypeField(const std::string& f, std::string* vartype, std::string* varname)
 {
-    size_t pos = 0, last;
-    bool done = false;
+	size_t pos = 0, last;
+	bool done = false;
 
 
-    *vartype = "";
-    if (varname != NULL) *varname = "";
+	*vartype = "";
+	if (varname != NULL) *varname = "";
 
-    enum { ST_TYPE, ST_NAME, ST_END } state = ST_TYPE;
+	enum { ST_TYPE, ST_NAME, ST_END } state = ST_TYPE;
 
-    while(!done) {
+	while (!done) {
 
-        std::string str = getNextToken(f, pos, &last, WHITESPACE);
-        if (str.size() == 0) break;
+		std::string str = getNextToken(f, pos, &last, WHITESPACE);
+		if (str.size() == 0) break;
 
-        switch(state) {
-        case ST_TYPE:
-            if (str == "const") {
-                pos = last;
-                *vartype = "const ";
-            } else {
-                // must be a type name;
-                *vartype += str;
-                state = ST_NAME;
-                pos = last;
-            }
-            break;
-        case ST_NAME:
-            if (str.size() == 0) {
-                done = true;
-            } else if (str == "*") {
-                (*vartype) += "*";
-                pos = last;
-	    } else if (str == "const*") {
-                (*vartype) += " const*";
-		pos = last;
-	    } else if (str == "const") {
-                (*vartype) += " const";
-		pos = last;
-            } else if (varname == NULL) {
-                done = true;
-            } else {
-                while (str[0] == '*') {
-                    (*vartype) += "*";
-                    str[0] = ' ';
-                    str = trim(str);
-                }
-                *varname = str;
-                done = true;
-            }
-            break;
-        case ST_END:
-            break;
-        }
-    }
-    return true;
+		switch (state) {
+		case ST_TYPE:
+			if (str == "const") {
+				pos = last;
+				*vartype = "const ";
+			}
+			else {
+				// must be a type name;
+				*vartype += str;
+				state = ST_NAME;
+				pos = last;
+			}
+			break;
+		case ST_NAME:
+			if (str.size() == 0) {
+				done = true;
+			}
+			else if (str == "*") {
+				(*vartype) += "*";
+				pos = last;
+			}
+			else if (str == "const*") {
+				(*vartype) += " const*";
+				pos = last;
+			}
+			else if (str == "const") {
+				(*vartype) += " const";
+				pos = last;
+			}
+			else if (varname == NULL) {
+				done = true;
+			}
+			else {
+				while (str[0] == '*') {
+					(*vartype) += "*";
+					str[0] = ' ';
+					str = trim(str);
+				}
+				*varname = str;
+				done = true;
+			}
+			break;
+		case ST_END:
+			break;
+		}
+	}
+	return true;
 }
 
 // return true for valid line (need to get into the entry points list)
-bool EntryPoint::parse(unsigned int lc, const std::string & str)
+bool EntryPoint::parse(unsigned int lc, const std::string& str)
 {
-    size_t pos, last;
-    std::string field;
+	size_t pos, last;
+	std::string field;
 
-    reset();
-    std::string linestr = trim(str);
+	reset();
+	std::string linestr = trim(str);
 
-    if (linestr.size() == 0) return false;
-    if (linestr.at(0) == '#') return false;
+	if (linestr.size() == 0) return false;
+	if (linestr.at(0) == '#') return false;
 
-    // skip PREFIX
-    field = getNextToken(linestr, 0, &last, "(");
-    pos = last + 1;
-    // return type
-    field = getNextToken(linestr, pos, &last, ",)");
-    std::string retTypeName;
-    if (!parseTypeField(field, &retTypeName, NULL)) {
-        fprintf(stderr, "line: %d: Parsing error in field <%s>\n", lc, field.c_str());
-        return false;
-    }
-    pos = last + 1;
-    const VarType *theType = TypeFactory::instance()->getVarTypeByName(retTypeName);
-    if (theType->name() == "UNKNOWN") {
-        fprintf(stderr, "UNKNOWN retval: %s\n", linestr.c_str());
-    }
+	// skip PREFIX
+	field = getNextToken(linestr, 0, &last, "(");
+	pos = last + 1;
+	// return type
+	field = getNextToken(linestr, pos, &last, ",)");
+	std::string retTypeName;
+	if (!parseTypeField(field, &retTypeName, NULL)) {
+		fprintf(stderr, "line: %d: Parsing error in field <%s>\n", lc, field.c_str());
+		return false;
+	}
+	pos = last + 1;
+	const VarType* theType = TypeFactory::instance()->getVarTypeByName(retTypeName);
+	if (theType->name() == "UNKNOWN") {
+		fprintf(stderr, "UNKNOWN retval: %s\n", linestr.c_str());
+	}
 
-    m_retval.init(std::string(""), theType, std::string(""), Var::POINTER_OUT, std::string(""), std::string(""));
+	m_retval.init(std::string(""), theType, std::string(""), Var::POINTER_OUT, std::string(""), std::string(""));
 
-    // function name
-    m_name = getNextToken(linestr, pos, &last, ",)");
-    pos = last + 1;
+	// function name
+	m_name = getNextToken(linestr, pos, &last, ",)");
+	pos = last + 1;
 
-    // parameters;
-    int nvars = 0;
-    while (pos < linestr.size() - 1) {
-        field = getNextToken(linestr, pos, &last, ",)");
-        std::string vartype, varname;
-        if (!parseTypeField(field, &vartype, &varname)) {
-            fprintf(stderr, "line: %d: Parsing error in field <%s>\n", lc, field.c_str());
-            return false;
-        }
-        nvars++;
-        const VarType *v = TypeFactory::instance()->getVarTypeByName(vartype);
-        if (v->id() == 0) {
-            fprintf(stderr, "%d: Unknown type: %s\n", lc, vartype.c_str());
-        } else {
-            if (varname == "" &&
-                !(v->name() == "void" && !v->isPointer())) {
-                std::ostringstream oss;
-                oss << "var" << nvars;
-                varname = oss.str();
-            }
+	// parameters;
+	int nvars = 0;
+	while (pos < linestr.size() - 1) {
+		field = getNextToken(linestr, pos, &last, ",)");
+		std::string vartype, varname;
+		if (!parseTypeField(field, &vartype, &varname)) {
+			fprintf(stderr, "line: %d: Parsing error in field <%s>\n", lc, field.c_str());
+			return false;
+		}
+		nvars++;
+		const VarType* v = TypeFactory::instance()->getVarTypeByName(vartype);
+		if (v->id() == 0) {
+			fprintf(stderr, "%d: Unknown type: %s\n", lc, vartype.c_str());
+		}
+		else {
+			if (varname == "" &&
+				!(v->name() == "void" && !v->isPointer())) {
+				std::ostringstream oss;
+				oss << "var" << nvars;
+				varname = oss.str();
+			}
 
-            m_vars.push_back(Var(varname, v, std::string(""), Var::POINTER_IN, "", ""));
-        }
-        pos = last + 1;
-    }
-    return true;
+			m_vars.push_back(Var(varname, v, std::string(""), Var::POINTER_IN, "", ""));
+		}
+		pos = last + 1;
+	}
+	return true;
 }
 
-void EntryPoint::print(FILE *fp, bool newline,
-                       const std::string & name_suffix,
-                       const std::string & name_prefix,
-                       const std::string & ctx_param ) const
+void EntryPoint::print(FILE* fp, bool newline,
+	const std::string& name_suffix,
+	const std::string& name_prefix,
+	const std::string& ctx_param) const
 {
-    fprintf(fp, "%s %s%s%s(",
-            m_retval.type()->name().c_str(),
-            name_prefix.c_str(),
-            m_name.c_str(),
-            name_suffix.c_str());
+	fprintf(fp, "%s %s%s%s(",
+		m_retval.type()->name().c_str(),
+		name_prefix.c_str(),
+		m_name.c_str(),
+		name_suffix.c_str());
 
-    if (ctx_param != "") fprintf(fp, "%s ", ctx_param.c_str());
+	if (ctx_param != "") fprintf(fp, "%s ", ctx_param.c_str());
 
-    for (size_t i = 0; i < m_vars.size(); i++) {
-        if (m_vars[i].isVoid()) continue;
-        if (i != 0 || ctx_param != "") fprintf(fp, ", ");
-        fprintf(fp, "%s %s", m_vars[i].type()->name().c_str(),
-                m_vars[i].name().c_str());
-    }
-    fprintf(fp, ")%s", newline? "\n" : "");
+	for (size_t i = 0; i < m_vars.size(); i++) {
+		if (m_vars[i].isVoid()) continue;
+		if (i != 0 || ctx_param != "") fprintf(fp, ", ");
+		fprintf(fp, "%s %s", m_vars[i].type()->name().c_str(),
+			m_vars[i].name().c_str());
+	}
+	fprintf(fp, ")%s", newline ? "\n" : "");
 }
 
-Var * EntryPoint::var(const std::string & name)
+Var* EntryPoint::var(const std::string& name)
 {
-    Var *v = NULL;
-    for (size_t i = 0; i < m_vars.size(); i++) {
-        if (m_vars[i].name() == name) {
-            v = &m_vars[i];
-            break;
-        }
-    }
-    return v;
+	Var* v = NULL;
+	for (size_t i = 0; i < m_vars.size(); i++) {
+		if (m_vars[i].name() == name) {
+			v = &m_vars[i];
+			break;
+		}
+	}
+	return v;
 }
 
 bool EntryPoint::hasPointers()
 {
-    bool pointers = false;
-    if (m_retval.isPointer()) pointers = true;
-    if (!pointers) {
-        for (size_t i = 0; i < m_vars.size(); i++) {
-            if (m_vars[i].isPointer()) {
-                pointers = true;
-                break;
-            }
-        }
-    }
-    return pointers;
+	bool pointers = false;
+	if (m_retval.isPointer()) pointers = true;
+	if (!pointers) {
+		for (size_t i = 0; i < m_vars.size(); i++) {
+			if (m_vars[i].isPointer()) {
+				pointers = true;
+				break;
+			}
+		}
+	}
+	return pointers;
 }
 
-int EntryPoint::setAttribute(const std::string &line, size_t lc)
+int EntryPoint::setAttribute(const std::string& line, size_t lc)
 {
-    size_t pos = 0;
-    size_t last;
-    std::string token = getNextToken(line, 0, &last, WHITESPACE);
+	size_t pos = 0;
+	size_t last;
+	std::string token = getNextToken(line, 0, &last, WHITESPACE);
 
-    if (token == "len") {
-        pos = last;
-        std::string varname = getNextToken(line, pos, &last, WHITESPACE);
+	if (token == "len") {
+		pos = last;
+		std::string varname = getNextToken(line, pos, &last, WHITESPACE);
 
-        if (varname.size() == 0) {
-            fprintf(stderr, "ERROR: %u: Missing variable name in 'len' attribute\n", (unsigned int)lc);
-            return -1;
-        }
-        Var * v = var(varname);
-        if (v == NULL) {
-            fprintf(stderr, "ERROR: %u: variable %s is not a parameter of %s\n",
-                    (unsigned int)lc, varname.c_str(), name().c_str());
-            return -2;
-        }
-        // set the size expression into var
-        pos = last;
-        v->setLenExpression(line.substr(pos));
-    } else if (token == "param_check") {
-        pos = last;
-        std::string varname = getNextToken(line, pos, &last, WHITESPACE);
+		if (varname.size() == 0) {
+			fprintf(stderr, "ERROR: %u: Missing variable name in 'len' attribute\n", (unsigned int)lc);
+			return -1;
+		}
+		Var* v = var(varname);
+		if (v == NULL) {
+			fprintf(stderr, "ERROR: %u: variable %s is not a parameter of %s\n",
+				(unsigned int)lc, varname.c_str(), name().c_str());
+			return -2;
+		}
+		// set the size expression into var
+		pos = last;
+		v->setLenExpression(line.substr(pos));
+	}
+	else if (token == "param_check") {
+		pos = last;
+		std::string varname = getNextToken(line, pos, &last, WHITESPACE);
 
-        if (varname.size() == 0) {
-            fprintf(stderr, "ERROR: %u: Missing variable name in 'param_check' attribute\n", (unsigned int)lc);
-            return -1;
-        }
-        Var * v = var(varname);
-        if (v == NULL) {
-            fprintf(stderr, "ERROR: %u: variable %s is not a parameter of %s\n",
-                    (unsigned int)lc, varname.c_str(), name().c_str());
-            return -2;
-        }
-        // set the size expression into var
-        pos = last;
-        v->setParamCheckExpression(line.substr(pos));
+		if (varname.size() == 0) {
+			fprintf(stderr, "ERROR: %u: Missing variable name in 'param_check' attribute\n", (unsigned int)lc);
+			return -1;
+		}
+		Var* v = var(varname);
+		if (v == NULL) {
+			fprintf(stderr, "ERROR: %u: variable %s is not a parameter of %s\n",
+				(unsigned int)lc, varname.c_str(), name().c_str());
+			return -2;
+		}
+		// set the size expression into var
+		pos = last;
+		v->setParamCheckExpression(line.substr(pos));
 
-    } else if (token == "dir") {
-        pos = last;
-        std::string varname = getNextToken(line, pos, &last, WHITESPACE);
-        if (varname.size() == 0) {
-            fprintf(stderr, "ERROR: %u: Missing variable name in 'dir' attribute\n", (unsigned int)lc);
-            return -1;
-        }
-        Var * v = var(varname);
-        if (v == NULL) {
-            fprintf(stderr, "ERROR: %u: variable %s is not a parameter of %s\n",
-                    (unsigned int)lc, varname.c_str(), name().c_str());
-            return -2;
-        }
+	}
+	else if (token == "dir") {
+		pos = last;
+		std::string varname = getNextToken(line, pos, &last, WHITESPACE);
+		if (varname.size() == 0) {
+			fprintf(stderr, "ERROR: %u: Missing variable name in 'dir' attribute\n", (unsigned int)lc);
+			return -1;
+		}
+		Var* v = var(varname);
+		if (v == NULL) {
+			fprintf(stderr, "ERROR: %u: variable %s is not a parameter of %s\n",
+				(unsigned int)lc, varname.c_str(), name().c_str());
+			return -2;
+		}
 
-        pos = last;
-        std::string pointerDirStr = getNextToken(line, pos, &last, WHITESPACE);
-        if (pointerDirStr.size() == 0) {
-            fprintf(stderr, "ERROR: %u: missing pointer directions\n", (unsigned int)lc);
-            return -3;
-        }
+		pos = last;
+		std::string pointerDirStr = getNextToken(line, pos, &last, WHITESPACE);
+		if (pointerDirStr.size() == 0) {
+			fprintf(stderr, "ERROR: %u: missing pointer directions\n", (unsigned int)lc);
+			return -3;
+		}
 
-        if (pointerDirStr == "out") {
-            v->setPointerDir(Var::POINTER_OUT);
-        } else if (pointerDirStr == "inout") {
-            v->setPointerDir(Var::POINTER_INOUT);
-        } else if (pointerDirStr == "in") {
-            v->setPointerDir(Var::POINTER_IN);
-        } else {
-            fprintf(stderr, "ERROR: %u: unknow pointer direction %s\n", (unsigned int)lc, pointerDirStr.c_str());
-        }
-    } else if (token == "var_flag") {
-        pos = last;
-        std::string varname = getNextToken(line, pos, &last, WHITESPACE);
-        if (varname.size() == 0) {
-            fprintf(stderr, "ERROR: %u: Missing variable name in 'var_flag' attribute\n", (unsigned int)lc);
-            return -1;
-        }
-        Var * v = var(varname);
-        if (v == NULL) {
-            fprintf(stderr, "ERROR: %u: variable %s is not a parameter of %s\n",
-                    (unsigned int)lc, varname.c_str(), name().c_str());
-            return -2;
-        }
-        int count = 0;
-        for (;;) {
-            pos = last;
-            std::string flag = getNextToken(line, pos, &last, WHITESPACE);
-            if (flag.size() == 0) {
-                if (count == 0) {
-                    fprintf(stderr, "ERROR: %u: missing flag\n", (unsigned int) lc);
-                    return -3;
-                }
-                break;
-            }
-            count++;
+		if (pointerDirStr == "out") {
+			v->setPointerDir(Var::POINTER_OUT);
+		}
+		else if (pointerDirStr == "inout") {
+			v->setPointerDir(Var::POINTER_INOUT);
+		}
+		else if (pointerDirStr == "in") {
+			v->setPointerDir(Var::POINTER_IN);
+		}
+		else {
+			fprintf(stderr, "ERROR: %u: unknow pointer direction %s\n", (unsigned int)lc, pointerDirStr.c_str());
+		}
+	}
+	else if (token == "var_flag") {
+		pos = last;
+		std::string varname = getNextToken(line, pos, &last, WHITESPACE);
+		if (varname.size() == 0) {
+			fprintf(stderr, "ERROR: %u: Missing variable name in 'var_flag' attribute\n", (unsigned int)lc);
+			return -1;
+		}
+		Var* v = var(varname);
+		if (v == NULL) {
+			fprintf(stderr, "ERROR: %u: variable %s is not a parameter of %s\n",
+				(unsigned int)lc, varname.c_str(), name().c_str());
+			return -2;
+		}
+		int count = 0;
+		for (;;) {
+			pos = last;
+			std::string flag = getNextToken(line, pos, &last, WHITESPACE);
+			if (flag.size() == 0) {
+				if (count == 0) {
+					fprintf(stderr, "ERROR: %u: missing flag\n", (unsigned int)lc);
+					return -3;
+				}
+				break;
+			}
+			count++;
 
-            if (flag == "nullAllowed") {
-                if (v->isPointer()) {
-                    v->setNullAllowed(true);
-                } else {
-                    fprintf(stderr, "WARNING: %u: setting nullAllowed for non-pointer variable %s\n",
-                            (unsigned int) lc, v->name().c_str());
-                }
-            } else if (flag == "isLarge") {
-                if (v->isPointer()) {
-                    v->setIsLarge(true);
-                } else {
-                    fprintf(stderr, "WARNING: %u: setting isLarge flag for a non-pointer variable %s\n",
-                            (unsigned int) lc, v->name().c_str());
-                }
-            } else {
-                fprintf(stderr, "WARNING: %u: unknow flag %s\n", (unsigned int)lc, flag.c_str());
-            }
-        }
-    } else if (token == "custom_pack") {
-        pos = last;
-        std::string varname = getNextToken(line, pos, &last, WHITESPACE);
+			if (flag == "nullAllowed") {
+				if (v->isPointer()) {
+					v->setNullAllowed(true);
+				}
+				else {
+					fprintf(stderr, "WARNING: %u: setting nullAllowed for non-pointer variable %s\n",
+						(unsigned int)lc, v->name().c_str());
+				}
+			}
+			else if (flag == "isLarge") {
+				if (v->isPointer()) {
+					v->setIsLarge(true);
+				}
+				else {
+					fprintf(stderr, "WARNING: %u: setting isLarge flag for a non-pointer variable %s\n",
+						(unsigned int)lc, v->name().c_str());
+				}
+			}
+			else {
+				fprintf(stderr, "WARNING: %u: unknow flag %s\n", (unsigned int)lc, flag.c_str());
+			}
+		}
+	}
+	else if (token == "custom_pack") {
+		pos = last;
+		std::string varname = getNextToken(line, pos, &last, WHITESPACE);
 
-        if (varname.size() == 0) {
-            fprintf(stderr, "ERROR: %u: Missing variable name in 'custom_pack' attribute\n", (unsigned int)lc);
-            return -1;
-        }
-        Var * v = var(varname);
-        if (v == NULL) {
-            fprintf(stderr, "ERROR: %u: variable %s is not a parameter of %s\n",
-                    (unsigned int)lc, varname.c_str(), name().c_str());
-            return -2;
-        }
-        // set the size expression into var
-        pos = last;
-        v->setPackExpression(line.substr(pos));
-    } else if (token == "custom_write") {
-        pos = last;
-        std::string varname = getNextToken(line, pos, &last, WHITESPACE);
+		if (varname.size() == 0) {
+			fprintf(stderr, "ERROR: %u: Missing variable name in 'custom_pack' attribute\n", (unsigned int)lc);
+			return -1;
+		}
+		Var* v = var(varname);
+		if (v == NULL) {
+			fprintf(stderr, "ERROR: %u: variable %s is not a parameter of %s\n",
+				(unsigned int)lc, varname.c_str(), name().c_str());
+			return -2;
+		}
+		// set the size expression into var
+		pos = last;
+		v->setPackExpression(line.substr(pos));
+	}
+	else if (token == "custom_write") {
+		pos = last;
+		std::string varname = getNextToken(line, pos, &last, WHITESPACE);
 
-        if (varname.size() == 0) {
-            fprintf(stderr, "ERROR: %u: Missing variable name in 'custom_write' attribute\n", (unsigned int)lc);
-            return -1;
-        }
-        Var * v = var(varname);
-        if (v == NULL) {
-            fprintf(stderr, "ERROR: %u: variable %s is not a parameter of %s\n",
-                    (unsigned int)lc, varname.c_str(), name().c_str());
-            return -2;
-        }
-        // set the size expression into var
-        pos = last;
-        v->setWriteExpression(line.substr(pos));
-    } else if (token == "flag") {
-        pos = last;
-        std::string flag = getNextToken(line, pos, &last, WHITESPACE);
-        if (flag.size() == 0) {
-            fprintf(stderr, "ERROR: %u: missing flag\n", (unsigned int) lc);
-            return -4;
-        }
+		if (varname.size() == 0) {
+			fprintf(stderr, "ERROR: %u: Missing variable name in 'custom_write' attribute\n", (unsigned int)lc);
+			return -1;
+		}
+		Var* v = var(varname);
+		if (v == NULL) {
+			fprintf(stderr, "ERROR: %u: variable %s is not a parameter of %s\n",
+				(unsigned int)lc, varname.c_str(), name().c_str());
+			return -2;
+		}
+		// set the size expression into var
+		pos = last;
+		v->setWriteExpression(line.substr(pos));
+	}
+	else if (token == "flag") {
+		pos = last;
+		std::string flag = getNextToken(line, pos, &last, WHITESPACE);
+		if (flag.size() == 0) {
+			fprintf(stderr, "ERROR: %u: missing flag\n", (unsigned int)lc);
+			return -4;
+		}
 
-        if (flag == "unsupported") {
-            setUnsupported(true);
-        } else if (flag == "custom_decoder") {
-            setCustomDecoder(true);
-        } else if (flag == "not_api") {
-            setNotApi(true);
-        } else {
-            fprintf(stderr, "WARNING: %u: unknown flag %s\n", (unsigned int)lc, flag.c_str());
-        }
-    } else {
-        fprintf(stderr, "WARNING: %u: unknown attribute %s\n", (unsigned int)lc, token.c_str());
-    }
+		if (flag == "unsupported") {
+			setUnsupported(true);
+		}
+		else if (flag == "custom_decoder") {
+			setCustomDecoder(true);
+		}
+		else if (flag == "not_api") {
+			setNotApi(true);
+		}
+		else {
+			fprintf(stderr, "WARNING: %u: unknown flag %s\n", (unsigned int)lc, flag.c_str());
+		}
+	}
+	else {
+		fprintf(stderr, "WARNING: %u: unknown attribute %s\n", (unsigned int)lc, token.c_str());
+	}
 
-    return 0;
+	return 0;
 }

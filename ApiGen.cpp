@@ -565,8 +565,8 @@ static void writeVarEncodingExpression(Var& var, FILE* fp)
 		if (!var.isVoid()) {
 			fprintf(fp, "\tmemcpy(ptr, &%s, %u); ptr += %u;\n",
 				varname,
-				(unsigned int)var.type()->bytes(),
-				(unsigned int)var.type()->bytes());
+				(uint)var.type()->bytes(),
+				(uint)var.type()->bytes());
 		}
 	}
 }
@@ -816,7 +816,7 @@ int ApiGen::genEncoderImpl(const std::string& filename)
 		/* exit logs */
 		if (!e->retval().isPointer() && e->retval().type()->name() != "void") {
 			fprintf(fp, "\n\t%s retval;\n", e->retval().type()->name().c_str());
-			fprintf(fp, "\tPgaSocketRecvCopy(sock, (char*)&retval, %u);\n", (unsigned int)e->retval().type()->bytes());
+			fprintf(fp, "\tPgaSocketRecvCopy(sock, (char*)&retval, %u);\n", (uint)e->retval().type()->bytes());
 		}
 
 		fprintf(fp, "\tPgaSocketUnlock(sock);\n");
@@ -983,7 +983,7 @@ bool if_print_pointer(std::string name)
 		"GLshort*",         // short
 		"GLsizei*",         // int
 		"GLubyte*",         // unsigned char
-		"GLunsigned int*"   // unsigned int
+		"GLuint*"           // unsigned int
 	};
 	static std::vector<std::string> s_vec(print_ptr, print_ptr + sizeof(print_ptr) / sizeof(print_ptr[0]));
 
@@ -1043,7 +1043,7 @@ void print_out_pointers(FILE* fp, EntryPoint* e)
 			if (v->pointerDir() == Var::POINTER_INOUT || v->pointerDir() == Var::POINTER_OUT) {
 				if (if_print_pointer(v->type()->name())) {
 					fprintf(fp, "\t\tprint_array ((%s)tmpPtr%u, tmpPtr%uSize);\n",
-						v->type()->name().c_str(), (unsigned int)i, (unsigned int)i);
+						v->type()->name().c_str(), (uint)i, (uint)i);
 				}
 			}
 		}
@@ -1156,9 +1156,9 @@ int ApiGen::genDecoderImpl(const std::string& filename)
 						if (v->pointerDir() == Var::POINTER_IN || v->pointerDir() == Var::POINTER_INOUT) {
 							if (pass == PASS_MemAlloc && v->pointerDir() == Var::POINTER_INOUT) {
 								fprintf(fp, "\t\tsize_t tmpPtr%uSize = (size_t)*(unsigned int *)(ptr + %s);\n",
-									(unsigned int)j, varoffset.c_str());
+									(uint)j, varoffset.c_str());
 								fprintf(fp, "unsigned char *tmpPtr%u = (ptr + %s + 4);\n",
-									(unsigned int)j, varoffset.c_str());
+									(uint)j, varoffset.c_str());
 							}
 							if (pass == PASS_FunctionCall) {
 								if (v->nullAllowed()) {
@@ -1180,35 +1180,35 @@ int ApiGen::genDecoderImpl(const std::string& filename)
 						else { // out pointer;
 							if (pass == PASS_TmpBuffAlloc) {
 								fprintf(fp, "\t\tsize_t tmpPtr%uSize = (size_t)*(unsigned int *)(ptr + %s);\n",
-									(unsigned int)j, varoffset.c_str());
+									(uint)j, varoffset.c_str());
 								if (!totalTmpBuffExist) {
-									fprintf(fp, "\t\tsize_t totalTmpSize = tmpPtr%uSize;\n", (unsigned int)j);
+									fprintf(fp, "\t\tsize_t totalTmpSize = tmpPtr%uSize;\n", (uint)j);
 								}
 								else {
-									fprintf(fp, "\t\ttotalTmpSize += tmpPtr%uSize;\n", (unsigned int)j);
+									fprintf(fp, "\t\ttotalTmpSize += tmpPtr%uSize;\n", (uint)j);
 								}
 								tmpBufOffset[j] = totalTmpBuffOffset;
 								char tmpPtrName[16];
-								sprintf(tmpPtrName, " + tmpPtr%uSize", (unsigned int)j);
+								sprintf(tmpPtrName, " + tmpPtr%uSize", (uint)j);
 								totalTmpBuffOffset += std::string(tmpPtrName);
 								totalTmpBuffExist = true;
 							}
 							else if (pass == PASS_MemAlloc) {
 								fprintf(fp, "\t\tunsigned char *tmpPtr%u = &tmpBuf[%s];\n",
-									(unsigned int)j, tmpBufOffset[j].c_str());
+									(uint)j, tmpBufOffset[j].c_str());
 							}
 							else if (pass == PASS_FunctionCall) {
 								if (v->nullAllowed()) {
 									fprintf(fp, "tmpPtr%uSize == 0 ? NULL : (%s)(tmpPtr%u)",
-										(unsigned int)j, v->type()->name().c_str(), (unsigned int)j);
+										(uint)j, v->type()->name().c_str(), (uint)j);
 								}
 								else {
-									fprintf(fp, "(%s)(tmpPtr%u)", v->type()->name().c_str(), (unsigned int)j);
+									fprintf(fp, "(%s)(tmpPtr%u)", v->type()->name().c_str(), (uint)j);
 								}
 							}
 							else if (pass == PASS_DebugPrint) {
 								fprintf(fp, "(%s)(tmpPtr%u), *(unsigned int *)(ptr + %s)",
-									v->type()->name().c_str(), (unsigned int)j,
+									v->type()->name().c_str(), (uint)j,
 									varoffset.c_str());
 							}
 							varoffset += " + 4";
@@ -1375,7 +1375,7 @@ int ApiGen::setGlobalAttribute(const std::string& line, size_t lc)
 	if (token == "base_opcode") {
 		std::string str = getNextToken(line, pos, &last, WHITESPACE);
 		if (str.size() == 0) {
-			fprintf(stderr, "line %u: missing value for base_opcode\n", (unsigned int)lc);
+			fprintf(stderr, "line %u: missing value for base_opcode\n", (uint)lc);
 		}
 		else {
 			setBaseOpcode(atoi(str.c_str()));

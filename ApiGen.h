@@ -20,6 +20,7 @@
 #include <string.h>
 #include "EntryPoint.h"
 
+typedef unsigned int uint;
 
 class ApiGen : public std::vector<EntryPoint> {
 
